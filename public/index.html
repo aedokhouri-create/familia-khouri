@@ -9,10 +9,10 @@
   <meta name="theme-color" content="#ffffff"/>
   <title>Família Khouri</title>
   <link rel="manifest" href="manifest.json"/>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-  <meta http-equiv="Pragma" content="no-cache"/>
-  <meta http-equiv="Expires" content="0"/>
   <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
     html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f7;color:#1c1c1e}
@@ -22,7 +22,10 @@
     #hdrAv{width:42px;height:42px;border-radius:50%;overflow:hidden;border:2px solid #e5e5ea;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;cursor:pointer;background:#f2f2f7}
     #hdrAv img{width:100%;height:100%;object-fit:cover}
     #hdrTitle{font-size:18px;font-weight:700;flex:1}
-    #hdrSub{font-size:11px;color:#8e8e93;margin-top:2px}
+    #hdrSub{font-size:11px;color:#8e8e93;margin-top:2px;display:flex;align-items:center;gap:5px}
+    #hdrSub button{background:none;border:none;font-size:11px;color:#007aff;cursor:pointer;padding:0}
+    .sync-dot{width:6px;height:6px;border-radius:50%;background:#34c759;display:inline-block;margin-right:3px}
+    .sync-dot.off{background:#ff9500}
     .mnav{display:flex;align-items:center;gap:8px;margin-top:8px}
     .mnav button{background:#f2f2f7;border:none;border-radius:8px;padding:4px 14px;font-size:16px;cursor:pointer}
     .mnav span{flex:1;text-align:center;font-size:14px;font-weight:600}
@@ -48,7 +51,7 @@
     .fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .btn{width:100%;padding:13px;border:none;border-radius:12px;background:#007aff;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px}
     .btn.teal{background:#00c7be}
-    .btn.green-btn{background:#34c759}
+    .btn.grn{background:#34c759}
     .ws{display:flex;gap:8px}
     .wb{flex:1;padding:9px 4px;border:1.5px solid #e5e5ea;border-radius:11px;background:none;font-size:12px;cursor:pointer;color:#8e8e93;font-weight:500;text-align:center}
     .wb.on{border-color:#007aff;color:#007aff;background:#f0f7ff}
@@ -93,8 +96,6 @@
     .ai-btn{width:100%;padding:13px;border:1.5px dashed #007aff;border-radius:12px;background:#f0f7ff;color:#007aff;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px}
     .cfg-av{width:64px;height:64px;border-radius:16px;background:#f2f2f7;border:2px dashed #007aff;cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
     .cfg-av img{width:100%;height:100%;object-fit:cover}
-
-    /* User screen */
     #uscreen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;gap:14px;padding:32px;text-align:center;background:#fff}
     .u-ico{width:90px;height:90px;border-radius:22px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:46px;overflow:hidden;margin-bottom:4px}
     .u-ico img{width:100%;height:100%;object-fit:cover}
@@ -108,8 +109,6 @@
     .cnw{display:flex;gap:8px;width:100%}
     .cnw input{flex:1;padding:13px;border:1.5px solid #e5e5ea;border-radius:12px;font-size:15px;background:#f9f9f9;color:#1c1c1e}
     .cnw button{padding:13px 16px;border:none;border-radius:12px;background:#007aff;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
-
-    /* Modal */
     .mo{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:200}
     .mb{background:#fff;border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:480px}
     .mt{font-size:17px;font-weight:700;margin-bottom:4px}
@@ -118,7 +117,7 @@
     .po{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
     .popt{padding:16px;border:1.5px solid #e5e5ea;border-radius:16px;background:#f9f9f9;font-size:14px;font-weight:600;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
     .popt span{font-size:26px}
-
+    .loading{text-align:center;padding:40px;color:#8e8e93;font-size:14px}
     @media(prefers-color-scheme:dark){
       html,body,#uscreen{background:#000;color:#f2f2f7}
       #app,#uscreen{background:#1c1c1e}
@@ -145,15 +144,7 @@
       .ubtn{background:#2c2c2e;border-color:#38383a;color:#f2f2f7}
       .popt{background:#2c2c2e;border-color:#38383a;color:#f2f2f7}
       .cnw input{background:#2c2c2e;border-color:#38383a;color:#f2f2f7}
-    }
-
-    @media(min-width:700px){
-      body{background:#e8eaf0}
-      #app{max-width:680px;border-radius:16px;margin:20px auto;height:calc(100dvh - 40px);box-shadow:0 4px 32px rgba(0,0,0,.15)}
-    }
-    @media(min-width:700px) and (prefers-color-scheme:dark){
-      body{background:#000}
-      #app{box-shadow:0 4px 32px rgba(0,0,0,.5)}
+      .cfg-av{border-color:#0a84ff;background:#2c2c2e}
     }
   </style>
 </head>
@@ -185,8 +176,9 @@
       <div style="flex:1;min-width:0">
         <div id="hdrTitle">Família Khouri</div>
         <div id="hdrSub">
-          <span id="hdrSubTxt">Olá!</span>
-          <button onclick="openModal('name')" style="background:none;border:none;font-size:11px;color:#007aff;cursor:pointer;margin-left:6px">✏️ editar</button>
+          <span class="sync-dot" id="syncDot"></span>
+          <span id="hdrSubTxt">Conectando…</span>
+          <button onclick="openModal('name')">✏️</button>
         </div>
       </div>
     </div>
@@ -196,9 +188,7 @@
       <button onclick="chM(1)">›</button>
     </div>
   </div>
-
-  <div id="content"></div>
-
+  <div id="content"><div class="loading">Carregando dados…</div></div>
   <div id="tabbar">
     <button class="tb on" onclick="goTab('dash',this)" id="tb-dash"><span>📊</span><span>Resumo</span></button>
     <button class="tb" onclick="goTab('cal',this)" id="tb-cal"><span>📅</span><span>Calendário</span></button>
@@ -206,7 +196,6 @@
     <button class="tb" onclick="goTab('contas',this)" id="tb-contas"><span>📋</span><span>Contas</span></button>
     <button class="tb" onclick="goTab('cfg',this)" id="tb-cfg"><span>⚙️</span><span>Config</span></button>
   </div>
-
   <div id="modal" style="display:none" class="mo" onclick="closeModal(event)">
     <div class="mb"><button class="mcl" onclick="closeModal()">✕</button><div id="mcon"></div></div>
   </div>
@@ -220,27 +209,81 @@
 <input type="file" id="pBillG" accept="image/*" style="display:none" onchange="onBillPhoto(this)"/>
 
 <script>
+// ── Firebase config ────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAnUNAWmOWOp4bqOuuSoSQB6iRM-f-PplU",
+  authDomain: "familia-khouri-gastos.firebaseapp.com",
+  databaseURL: "https://familia-khouri-gastos-default-rtdb.firebaseio.com",
+  projectId: "familia-khouri-gastos",
+  storageBucket: "familia-khouri-gastos.firebasestorage.app",
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const ref = db.ref('familia-khouri');
+
+// ── Constants ──────────────────────────────────────────────────────────────
 const MONTHS=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const DS=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 const CATS={
   '🏠 Prestação':'#378ADD','💡 Consumo (luz/água/net)':'#EF9F27',
   '🏥 Seguro saúde':'#1D9E75','🛡️ Seguro de vida':'#7F77DD',
-  '📈 Previdência':'#185FA5','🧒 Elisa':'#D4537E','👦 Gabi':'#00c7be',
+  '📈 Previdência':'#185FA5','🏢 Condomínio':'#5C6BC0',
+  '🧒 Elisa':'#D4537E','👦 Gabi':'#00c7be',
   '🛒 Alimentação':'#34c759','🚗 Transporte':'#ff9500',
   '💊 Saúde/Farmácia':'#E24B4A','🎭 Lazer':'#a259f7',
   '👗 Vestuário':'#D85A30','📦 Outros':'#888780'
 };
-const BILL_CATS=['🏠 Prestação','💡 Consumo (luz/água/net)','🏥 Seguro saúde','🛡️ Seguro de vida','📈 Previdência'];
+const BILL_CATS=['🏠 Prestação','💡 Consumo (luz/água/net)','🏥 Seguro saúde','🛡️ Seguro de vida','📈 Previdência','🏢 Condomínio'];
 
-let cu='',curM=new Date().getMonth(),curY=new Date().getFullYear(),tab='dash',selDay=null,prefDate='',whoSel='';
+// ── State ──────────────────────────────────────────────────────────────────
+let cu='', curM=new Date().getMonth(), curY=new Date().getFullYear();
+let tab='dash', selDay=null, prefDate='', whoSel='';
+let appData={gastos:[],contas:[],budget:25000,lastBy:'',lastAt:''};
+let synced=false;
 
+// ── Local prefs (photos stay local) ───────────────────────────────────────
 function gp(){try{return JSON.parse(localStorage.getItem('fk-p')||'{}')}catch{return{}}}
 function sp(p){localStorage.setItem('fk-p',JSON.stringify(p))}
 function getPref(k){return gp()[k]||null}
 function setPref(k,v){const p=gp();p[k]=v;sp(p)}
-function gd(){try{return JSON.parse(localStorage.getItem('fk-d')||'{}')}catch{return{}}}
-function getData(){const d=gd();return{gastos:d.gastos||[],contas:d.contas||[],budget:d.budget||3000,lastBy:d.lastBy||'',lastAt:d.lastAt||''}}
-function mutate(fn){const d=getData();fn(d);d.lastBy=cu;d.lastAt=new Date().toISOString();localStorage.setItem('fk-d',JSON.stringify(d));render()}
+
+// ── Firebase sync ──────────────────────────────────────────────────────────
+function startSync(){
+  ref.on('value', snap => {
+    const d = snap.val();
+    if(d){
+      appData = {
+        gastos: d.gastos ? Object.values(d.gastos) : [],
+        contas: d.contas ? Object.values(d.contas) : [],
+        budget: d.budget || 25000,
+        lastBy: d.lastBy || '',
+        lastAt: d.lastAt || ''
+      };
+    }
+    synced = true;
+    document.getElementById('syncDot').className = 'sync-dot';
+    render();
+  }, err => {
+    document.getElementById('syncDot').className = 'sync-dot off';
+    document.getElementById('hdrSubTxt').textContent = 'Sem conexão';
+  });
+}
+
+function saveToFirebase(){
+  const gastosObj = {};
+  appData.gastos.forEach(g => { gastosObj[g.id] = g; });
+  const contasObj = {};
+  appData.contas.forEach(c => { contasObj[c.id] = c; });
+  ref.set({
+    gastos: gastosObj,
+    contas: contasObj,
+    budget: appData.budget,
+    lastBy: cu,
+    lastAt: new Date().toISOString()
+  });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 function fmt(n){return'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function today(){return new Date().toISOString().split('T')[0]}
 function ddiff(ds){if(!ds)return null;const t=new Date();t.setHours(0,0,0,0);return Math.round((new Date(ds+'T00:00:00')-t)/86400000)}
@@ -249,16 +292,22 @@ function ico(c){return(c||'📦').split(' ')[0]}
 function nm(c){return(c||'Outros').replace(/^\S+\s/,'')}
 function f2b(f){return new Promise((r,j)=>{const x=new FileReader();x.onload=()=>r(x.result);x.onerror=j;x.readAsDataURL(f)})}
 
+// ── UI helpers ─────────────────────────────────────────────────────────────
 function applyUI(){
-  const ph=getPref('famPhoto'),ttl=getPref('appTitle')||'Família Khouri';
-  const el=e=>document.getElementById(e);
+  const ph=getPref('famPhoto'), ttl=getPref('appTitle')||'Família Khouri';
+  const el=id=>document.getElementById(id);
   if(el('uIco'))el('uIco').innerHTML=ph?`<img src="${ph}"/>`:'🏡';
   if(el('uTitle'))el('uTitle').textContent=ttl;
   if(el('hdrAv'))el('hdrAv').innerHTML=ph?`<img src="${ph}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"/>`:'🏡';
   if(el('hdrTitle'))el('hdrTitle').textContent=ttl;
-  ['Aedão','Leti'].forEach(n=>{const a=el('uav-'+n);if(!a)return;const p=getPref('photo-'+n);a.innerHTML=p?`<img src="${p}"/>`:(n==='Aedão'?'👨':'👩')});
+  ['Aedão','Leti'].forEach(n=>{
+    const a=el('uav-'+n);if(!a)return;
+    const p=getPref('photo-'+n);
+    a.innerHTML=p?`<img src="${p}"/>`:(n==='Aedão'?'👨':'👩');
+  });
 }
 
+// ── User ───────────────────────────────────────────────────────────────────
 window.setUser=function(n){cu=n;localStorage.setItem('fk-u',n);whoSel=n;showApp()}
 window.setCustom=function(){const v=document.getElementById('cname').value.trim();if(v)setUser(v)}
 document.getElementById('cname').addEventListener('keydown',e=>{if(e.key==='Enter')setCustom()})
@@ -266,35 +315,38 @@ document.getElementById('cname').addEventListener('keydown',e=>{if(e.key==='Ente
 function showApp(){
   document.getElementById('uscreen').style.display='none';
   document.getElementById('app').style.display='flex';
+  startSync();
   goTab('dash',document.getElementById('tb-dash'));
 }
-
 const su=localStorage.getItem('fk-u');
 if(su){cu=su;whoSel=su;showApp()}
 applyUI();
 
+// ── Nav ────────────────────────────────────────────────────────────────────
 window.goTab=function(t,btn){tab=t;selDay=null;document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');render()}
 window.chM=function(d){curM+=d;if(curM>11){curM=0;curY++}if(curM<0){curM=11;curY--}selDay=null;render()}
 window.selDay2=function(d){selDay=selDay===d?null:d;render()}
 
+// ── Render ─────────────────────────────────────────────────────────────────
 function render(){
   document.getElementById('mLbl').textContent=MONTHS[curM]+' '+curY;
-  const d=getData();
-  const la=d.lastAt?new Date(d.lastAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-  document.getElementById('hdrSubTxt').textContent=d.lastBy&&la?`${cu} · ${d.lastBy} às ${la}`:`Olá, ${cu}!`;
+  const la=appData.lastAt?new Date(appData.lastAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+  document.getElementById('hdrSubTxt').textContent=appData.lastBy&&la?`${cu} · ${appData.lastBy} às ${la}`:`Olá, ${cu}!`;
   const c=document.getElementById('content');
-  if(tab==='dash')  c.innerHTML=rDash(d);
-  if(tab==='cal')   c.innerHTML=rCal(d);
-  if(tab==='gastos')c.innerHTML=rGastos(d);
-  if(tab==='contas')c.innerHTML=rContas(d);
+  if(tab==='dash')  c.innerHTML=rDash();
+  if(tab==='cal')   c.innerHTML=rCal();
+  if(tab==='gastos')c.innerHTML=rGastos();
+  if(tab==='contas')c.innerHTML=rContas();
   if(tab==='cfg')   c.innerHTML=rCfg();
 }
 
-function rDash(d){
-  const mg=d.gastos.filter(g=>{const dt=new Date(g.date+'T00:00:00');return dt.getMonth()===curM&&dt.getFullYear()===curY});
+// ── Dashboard ──────────────────────────────────────────────────────────────
+function rDash(){
+  const mg=appData.gastos.filter(g=>{const dt=new Date(g.date+'T00:00:00');return dt.getMonth()===curM&&dt.getFullYear()===curY});
   const tot=mg.reduce((s,g)=>s+g.amt,0);
-  const pend=d.contas.filter(c=>!c.paid),ptot=pend.reduce((s,c)=>s+c.amt,0);
-  const pct=d.budget>0?Math.min(100,tot/d.budget*100):0;
+  const pend=appData.contas.filter(c=>!c.paid), ptot=pend.reduce((s,c)=>s+c.amt,0);
+  const bud=appData.budget||25000;
+  const pct=bud>0?Math.min(100,tot/bud*100):0;
   const pc=pct>90?'#ff3b30':pct>70?'#ff9500':'#34c759';
   const urg=pend.filter(c=>{const df=ddiff(c.due);return df!==null&&df<=5}).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
   const cm={};mg.forEach(g=>{cm[g.cat]=(cm[g.cat]||0)+g.amt});
@@ -304,9 +356,9 @@ function rDash(d){
     <div class="mc"><div class="lb">Gasto no mês</div><div class="vl red">${fmt(tot)}</div></div>
     <div class="mc"><div class="lb">Contas pendentes</div><div class="vl amber">${fmt(ptot)}</div></div>
     <div class="mc full">
-      <div class="brow"><span class="lb" style="margin:0">Orçamento mensal</span><input class="bi" type="number" value="${d.budget}" onchange="updBudget(this.value)"/></div>
+      <div class="brow"><span class="lb" style="margin:0">Orçamento mensal</span><input class="bi" type="number" value="${bud}" onchange="updBudget(this.value)"/></div>
       <div class="pw"><div class="pf" style="width:${pct.toFixed(1)}%;background:${pc}"></div></div>
-      <div style="font-size:11px;color:#8e8e93;text-align:right">${fmt(tot)} de ${fmt(d.budget)} · ${pct.toFixed(0)}% usado</div>
+      <div style="font-size:11px;color:#8e8e93;text-align:right">${fmt(tot)} de ${fmt(bud)} · ${pct.toFixed(0)}% usado</div>
     </div>
   </div>
   ${urg.length?`<div class="alrt"><div class="alrt-t">⚠️ Contas vencendo em breve</div>${urg.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:13px"><span>${c.name}</span><div style="display:flex;align-items:center;gap:7px">${dbadge(c.due)}<strong class="red">${fmt(c.amt)}</strong></div></div>`).join('')}</div>`:''}
@@ -320,12 +372,13 @@ function rDash(d){
   </div>`;
 }
 
-function rCal(d){
+// ── Calendar ───────────────────────────────────────────────────────────────
+function rCal(){
   const tn=new Date(),isNow=tn.getMonth()===curM&&tn.getFullYear()===curY,tdD=isNow?tn.getDate():null;
   const fd=new Date(curY,curM,1).getDay(),dim=new Date(curY,curM+1,0).getDate();
   const bd={},gd2={};
-  d.contas.forEach(c=>{if(!c.due)return;const dt=new Date(c.due+'T00:00:00');if(dt.getMonth()===curM&&dt.getFullYear()===curY){const day=dt.getDate();if(!bd[day])bd[day]=[];bd[day].push(c)}});
-  d.gastos.forEach(g=>{const dt=new Date(g.date+'T00:00:00');if(dt.getMonth()===curM&&dt.getFullYear()===curY){const day=dt.getDate();if(!gd2[day])gd2[day]=[];gd2[day].push(g)}});
+  appData.contas.forEach(c=>{if(!c.due)return;const dt=new Date(c.due+'T00:00:00');if(dt.getMonth()===curM&&dt.getFullYear()===curY){const day=dt.getDate();if(!bd[day])bd[day]=[];bd[day].push(c)}});
+  appData.gastos.forEach(g=>{const dt=new Date(g.date+'T00:00:00');if(dt.getMonth()===curM&&dt.getFullYear()===curY){const day=dt.getDate();if(!gd2[day])gd2[day]=[];gd2[day].push(g)}});
   let h=`<div class="sec"><div class="card"><div class="cbd" style="padding-top:14px"><div class="cal-g">`;
   h+=DS.map(d=>`<div class="cal-dow">${d}</div>`).join('');
   for(let i=0;i<fd;i++)h+=`<div class="cal-d emp"></div>`;
@@ -353,18 +406,20 @@ function rCal(d){
   h+=`</div></div></div>`;return h;
 }
 
-function rGastos(d){
-  const mg=d.gastos.filter(g=>{const dt=new Date(g.date+'T00:00:00');return dt.getMonth()===curM&&dt.getFullYear()===curY}).sort((a,b)=>b.date.localeCompare(a.date));
+// ── Gastos ─────────────────────────────────────────────────────────────────
+function rGastos(){
+  const mg=appData.gastos.filter(g=>{const dt=new Date(g.date+'T00:00:00');return dt.getMonth()===curM&&dt.getFullYear()===curY}).sort((a,b)=>b.date.localeCompare(a.date));
   const id=prefDate||today();prefDate='';
   const ec=Object.keys(CATS).filter(k=>!BILL_CATS.includes(k));
-  const wl=['Aedão','Leti','Conjunto'];
   return`<div class="sec">
     <div class="card"><div class="chd">Novo gasto</div><div class="cbd">
-      <div class="fg"><label>Descrição</label><input id="gN" placeholder="Ex: Mercado, Escola Elisa, Farmácia…"/></div>
-      <div class="fr"><div class="fg"><label>Valor (R$)</label><input type="number" id="gA" placeholder="0,00" min="0" step="0.01" inputmode="decimal"/></div>
+      <div class="fg"><label>Descrição</label><input id="gN" placeholder="Ex: Mercado, Escola Elisa…"/></div>
+      <div class="fr"><div class="fg"><label>Valor (R$)</label><input type="number" id="gA" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/></div>
       <div class="fg"><label>Data</label><input type="date" id="gD" value="${id}"/></div></div>
       <div class="fg"><label>Categoria</label><select id="gC">${ec.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
-      <div class="fg"><label>Pago por</label><div class="ws">${wl.map(w=>`<button class="wb${w===whoSel?' on':''}" id="wb-${w}" onclick="selW('${w}')">${w==='Aedão'?'👨':w==='Leti'?'👩':'👫'} ${w}</button>`).join('')}</div></div>
+      <div class="fg"><label>Pago por</label>
+        <div class="ws">${['Aedão','Leti','Conjunto'].map(w=>`<button class="wb${w===whoSel?' on':''}" id="wb-${w}" onclick="selW('${w}')">${w==='Aedão'?'👨':w==='Leti'?'👩':'👫'} ${w}</button>`).join('')}</div>
+      </div>
       <button class="btn" onclick="addGasto()">+ Adicionar gasto</button>
     </div></div>
     <div class="card"><div class="chd">Lançamentos — ${MONTHS[curM]}</div><div class="il">
@@ -373,9 +428,10 @@ function rGastos(d){
   </div>`;
 }
 
-function rContas(d){
-  const pend=d.contas.filter(c=>!c.paid).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
-  const paid=d.contas.filter(c=>c.paid);
+// ── Contas ─────────────────────────────────────────────────────────────────
+function rContas(){
+  const pend=appData.contas.filter(c=>!c.paid).sort((a,b)=>(a.due||'9').localeCompare(b.due||'9'));
+  const paid=appData.contas.filter(c=>c.paid);
   const id=prefDate||'';prefDate='';
   return`<div class="sec">
     <button class="ai-btn" onclick="document.getElementById('pBill').click()">📷 Fotografar conta <span style="font-size:11px;background:#007aff;color:#fff;padding:2px 8px;border-radius:20px;font-weight:700">IA</span></button>
@@ -383,14 +439,18 @@ function rContas(d){
     <div id="aiR"></div>
     <div class="card"><div class="chd">Adicionar conta</div><div class="cbd">
       <div class="fg"><label>Nome</label><input id="cN" placeholder="Ex: Prestação, Seguro, Luz…"/></div>
-      <div class="fr"><div class="fg"><label>Valor (R$)</label><input type="number" id="cA" placeholder="0,00" min="0" step="0.01" inputmode="decimal"/></div>
+      <div class="fr"><div class="fg"><label>Valor (R$)</label><input type="number" id="cA" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/></div>
       <div class="fg"><label>Vencimento</label><input type="date" id="cD" value="${id}"/></div></div>
       <div class="fg"><label>Categoria</label><select id="cC">${Object.keys(CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
-      <div class="fg"><label>Recorrência</label><select id="cR"><option value="monthly">Todo mês</option><option value="once">Única vez</option><option value="yearly">Todo ano</option></select></div>
+      <div class="fg"><label>Recorrência</label><select id="cR">
+        <option value="monthly">Todo mês</option>
+        <option value="once">Única vez</option>
+        <option value="yearly">Todo ano</option>
+      </select></div>
       <button class="btn teal" onclick="addConta()">+ Adicionar conta</button>
     </div></div>
     ${pend.length?`<div class="slbl">Pendentes (${pend.length})</div><div class="card"><div class="il">
-      ${pend.map(c=>`<div class="li" style="${ddiff(c.due)!==null&&ddiff(c.due)<0?'background:#fff8f7':''}"><span class="li-ico">${ico(c.cat)}</span><div class="li-info"><div class="li-name">${c.name}</div><div class="li-sub">${c.due?'Vence: '+c.due:'Sem data'} · ${c.rec==='monthly'?'Mensal':c.rec==='yearly'?'Anual':'Única'}</div><div style="margin-top:3px">${dbadge(c.due)}</div></div><div class="li-r"><span class="li-amt red">${fmt(c.amt)}</span><button class="pbtn" onclick="pagConta(${c.id})">✓ Pagar</button><button class="dbtn" onclick="delConta(${c.id})">✕</button></div></div>`).join('')}
+      ${pend.map(c=>`<div class="li"><span class="li-ico">${ico(c.cat)}</span><div class="li-info"><div class="li-name">${c.name}</div><div class="li-sub">${c.due?'Vence: '+c.due:'Sem data'} · ${c.rec==='monthly'?'Mensal':c.rec==='yearly'?'Anual':'Única'}</div><div style="margin-top:3px">${dbadge(c.due)}</div></div><div class="li-r"><span class="li-amt red">${fmt(c.amt)}</span><button class="pbtn" onclick="pagConta(${c.id})">✓ Pagar</button><button class="dbtn" onclick="delConta(${c.id})">✕</button></div></div>`).join('')}
     </div></div>`:'<div class="empty" style="padding:14px 0 4px">Sem contas pendentes 🎉</div>'}
     ${paid.length?`<div class="slbl">Pagas (${paid.length})</div><div class="card"><div class="il">
       ${paid.map(c=>`<div class="li" style="opacity:.6"><span class="li-ico">${ico(c.cat)}</span><div class="li-info"><div class="li-name" style="text-decoration:line-through">${c.name}</div><div class="li-sub">${c.rec==='monthly'?'Mensal':c.rec==='yearly'?'Anual':'Única'} · ${c.paidBy||''}</div></div><div class="li-r"><span class="li-amt" style="color:#8e8e93">${fmt(c.amt)}</span><button class="pbtn off" onclick="pagConta(${c.id})">↩</button><button class="dbtn" onclick="delConta(${c.id})">✕</button></div></div>`).join('')}
@@ -398,6 +458,7 @@ function rContas(d){
   </div>`;
 }
 
+// ── Config ─────────────────────────────────────────────────────────────────
 function rCfg(){
   const ttl=getPref('appTitle')||'Família Khouri';
   const fp=getPref('famPhoto'),mp=getPref('photo-'+cu);
@@ -408,11 +469,11 @@ function rCfg(){
         <div><div style="font-size:14px;font-weight:600">${ttl}</div>
         <div style="font-size:12px;color:#007aff;cursor:pointer;margin-top:3px" onclick="openModal('avatar')">Trocar foto →</div></div>
       </div>
-      ${fp?`<div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;color:#007aff;font-weight:500">✅ Foto salva! Para aparecer no ícone, reinstale o app:</div>
-      <div style="background:#f9f9f9;border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;line-height:1.7">
-        1. Toque em <strong>compartilhar ↑</strong> no Safari<br>
-        2. Toque em <strong>"Adicionar à Tela de Início"</strong><br>
-        3. Apague o ícone antigo da tela inicial
+      ${fp?`<div style="background:#f0f7ff;border-radius:12px;padding:12px;margin-bottom:10px;font-size:13px;color:#007aff">
+        ✅ Para o ícone da tela inicial ter essa foto:<br>
+        1. Safari → compartilhar ↑<br>
+        2. "Adicionar à Tela de Início"<br>
+        3. Apague o ícone antigo
       </div>`:''}
       <div class="fg"><label>Nome do app</label><input id="cfgT" value="${ttl}"/></div>
       <button class="btn" onclick="saveCfgTitle()">Salvar nome</button>
@@ -424,11 +485,18 @@ function rCfg(){
         <div style="font-size:12px;color:#007aff;cursor:pointer;margin-top:3px" onclick="openModal('user')">Trocar foto →</div></div>
       </div>
       <div class="fg"><label>Meu nome</label><input id="cfgN" value="${cu}"/></div>
-      <button class="btn teal" onclick="saveCfgName()">Salvar nome</button>
+      <button class="btn teal" onclick="saveCfgName()">Salvar</button>
+    </div></div>
+    <div class="card"><div class="chd">Sincronização</div><div class="cbd">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0">
+        <span class="sync-dot" id="syncDot2"></span>
+        <span style="font-size:14px;color:var(--color-text-primary)">Dados sincronizados em tempo real</span>
+      </div>
+      <div style="font-size:12px;color:#8e8e93;margin-top:4px">Aedão e Leti veem os mesmos dados automaticamente</div>
     </div></div>
     <div class="card"><div class="chd">Orçamento</div><div class="cbd">
-      <div class="fg"><label>Orçamento mensal (R$)</label><input type="number" id="cfgB" value="${getData().budget}" inputmode="decimal"/></div>
-      <button class="btn green-btn" onclick="saveBudget()">Salvar</button>
+      <div class="fg"><label>Orçamento mensal (R$)</label><input type="number" id="cfgB" value="${appData.budget}" inputmode="decimal"/></div>
+      <button class="btn grn" onclick="saveBudget()">Salvar</button>
     </div></div>
     <div style="text-align:center;padding:20px 0">
       <button onclick="logout()" style="background:none;border:none;color:#ff3b30;font-size:14px;cursor:pointer">Trocar de usuário</button>
@@ -436,7 +504,7 @@ function rCfg(){
   </div>`;
 }
 
-// Modal
+// ── Modal ──────────────────────────────────────────────────────────────────
 window.openModal=function(type){
   const mc=document.getElementById('mcon');
   if(type==='avatar'){
@@ -465,19 +533,19 @@ window.closeModal=function(e){if(!e||e.target===document.getElementById('modal')
 window.saveEditName=function(){const v=document.getElementById('enInput').value.trim();if(v){cu=v;localStorage.setItem('fk-u',v);}closeModal();render()}
 window.saveCfgTitle=function(){const v=document.getElementById('cfgT').value.trim();if(v){setPref('appTitle',v);applyUI();render()}}
 window.saveCfgName=function(){const v=document.getElementById('cfgN').value.trim();if(v){cu=v;localStorage.setItem('fk-u',v);whoSel=v;render()}}
-window.saveBudget=function(){const v=parseFloat(document.getElementById('cfgB').value);if(v>0)mutate(d=>{d.budget=v})}
+window.saveBudget=function(){const v=parseFloat(document.getElementById('cfgB').value);if(v>0){appData.budget=v;saveToFirebase()}}
 window.logout=function(){localStorage.removeItem('fk-u');cu='';document.getElementById('app').style.display='none';document.getElementById('uscreen').style.display='flex';applyUI()}
 
-// Photo handlers
+// ── Photos ─────────────────────────────────────────────────────────────────
 window.onPhoto=async function(input,type){
   if(!input.files||!input.files[0])return;
   const b64=await f2b(input.files[0]);
-  if(type==='family'){setPref('famPhoto',b64);}
-  else{setPref('photo-'+cu,b64);}
+  if(type==='family')setPref('famPhoto',b64);
+  else setPref('photo-'+cu,b64);
   closeModal();applyUI();render();input.value='';
 }
 
-// Bill AI
+// ── AI Bill scan ───────────────────────────────────────────────────────────
 window.onBillPhoto=async function(input){
   if(!input.files||!input.files[0])return;
   const file=input.files[0];
@@ -505,33 +573,33 @@ window.onBillPhoto=async function(input){
 window.saveAI=function(){
   const n=document.getElementById('aiN')?.value.trim(),a=parseFloat(document.getElementById('aiA')?.value),du=document.getElementById('aiD')?.value;
   if(!n||isNaN(a)||a<=0){alert('Confira nome e valor.');return}
-  mutate(d=>{d.contas.unshift({id:Date.now(),name:n,amt:a,due:du,rec:'monthly',cat:'💡 Consumo (luz/água/net)',paid:false,paidBy:''})});
+  appData.contas.unshift({id:Date.now(),name:n,amt:a,due:du,rec:'monthly',cat:'💡 Consumo (luz/água/net)',paid:false,paidBy:''});
+  saveToFirebase();
   const ar=document.getElementById('aiR');if(ar)ar.innerHTML='';
 }
 
-// CRUD
+// ── CRUD ───────────────────────────────────────────────────────────────────
 window.qa=function(t,date){prefDate=date;goTab(t,document.getElementById('tb-'+t))}
 window.selW=function(w){whoSel=w;document.querySelectorAll('.wb').forEach(b=>b.classList.remove('on'));const b=document.getElementById('wb-'+w);if(b)b.classList.add('on')}
+
 window.addGasto=function(){
   const n=document.getElementById('gN').value.trim(),a=parseFloat(document.getElementById('gA').value),dt=document.getElementById('gD').value||today(),cat=document.getElementById('gC').value;
   if(!n||isNaN(a)||a<=0){alert('Preencha descrição e valor.');return}
-  mutate(d=>{d.gastos.unshift({id:Date.now(),name:n,amt:a,date:dt,cat,who:whoSel||cu})});
+  appData.gastos.unshift({id:Date.now(),name:n,amt:a,date:dt,cat,who:whoSel||cu});
+  saveToFirebase();
   document.getElementById('gN').value='';document.getElementById('gA').value='';
 }
-window.delGasto=function(id){if(!confirm('Remover?'))return;mutate(d=>{d.gastos=d.gastos.filter(g=>g.id!==id)})}
+window.delGasto=function(id){if(!confirm('Remover?'))return;appData.gastos=appData.gastos.filter(g=>g.id!==id);saveToFirebase()}
 window.addConta=function(){
   const n=document.getElementById('cN').value.trim(),a=parseFloat(document.getElementById('cA').value),du=document.getElementById('cD').value,rec=document.getElementById('cR').value,cat=document.getElementById('cC').value;
   if(!n||isNaN(a)||a<=0){alert('Preencha nome e valor.');return}
-  mutate(d=>{d.contas.unshift({id:Date.now(),name:n,amt:a,due:du,rec,cat,paid:false,paidBy:''})});
+  appData.contas.unshift({id:Date.now(),name:n,amt:a,due:du,rec,cat,paid:false,paidBy:''});
+  saveToFirebase();
   document.getElementById('cN').value='';document.getElementById('cA').value='';document.getElementById('cD').value='';
 }
-window.pagConta=function(id){mutate(d=>{const c=d.contas.find(x=>x.id===id);if(c){c.paid=!c.paid;c.paidBy=cu}})}
-window.delConta=function(id){if(!confirm('Remover?'))return;mutate(d=>{d.contas=d.contas.filter(c=>c.id!==id)})}
-window.updBudget=function(v){mutate(d=>{d.budget=parseFloat(v)||0})}
-
-render();
-// Unregister old service workers
-if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(regs=>{regs.forEach(r=>r.unregister())})}
+window.pagConta=function(id){const c=appData.contas.find(x=>x.id===id);if(c){c.paid=!c.paid;c.paidBy=cu;}saveToFirebase()}
+window.delConta=function(id){if(!confirm('Remover?'))return;appData.contas=appData.contas.filter(c=>c.id!==id);saveToFirebase()}
+window.updBudget=function(v){appData.budget=parseFloat(v)||0;saveToFirebase()}
 </script>
 </body>
 </html>
