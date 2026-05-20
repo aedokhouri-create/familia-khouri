@@ -118,6 +118,17 @@
     .popt{padding:16px;border:1.5px solid #e5e5ea;border-radius:16px;background:#f9f9f9;font-size:14px;font-weight:600;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
     .popt span{font-size:26px}
     .loading{text-align:center;padding:40px;color:#8e8e93;font-size:14px}
+    .fab{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));right:18px;width:54px;height:54px;border-radius:50%;background:#007aff;border:none;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(0,122,255,.45);z-index:150;display:flex;align-items:center;justify-content:center;transition:transform .2s}
+    .fab:active{transform:scale(.92)}
+    .fab-overlay{position:fixed;inset:0;z-index:140;display:none}
+    .fab-menu{position:fixed;bottom:calc(136px + env(safe-area-inset-bottom));right:18px;display:flex;flex-direction:column;gap:10px;z-index:150;display:none}
+    .fab-item{display:flex;align-items:center;gap:10px;background:#fff;border:none;border-radius:22px;padding:11px 18px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.15);white-space:nowrap;color:#1c1c1e}
+    .ebtn{background:none;border:none;font-size:14px;color:#007aff;cursor:pointer;padding:2px 6px}
+    .pw-who{display:flex;gap:8px;margin-top:8px}
+    .pw-tag{flex:1;text-align:center;border-radius:10px;padding:8px 4px;font-size:11px;font-weight:600}
+    @media(prefers-color-scheme:dark){
+      .fab-item{background:#2c2c2e;color:#f2f2f7}
+    }
     @media(prefers-color-scheme:dark){
       html,body,#uscreen{background:#000;color:#f2f2f7}
       #app,#uscreen{background:#1c1c1e}
@@ -199,6 +210,12 @@
   <div id="modal" style="display:none" class="mo" onclick="closeModal(event)">
     <div class="mb"><button class="mcl" onclick="closeModal()">&#10005;</button><div id="mcon"></div></div>
   </div>
+  <div class="fab-overlay" id="fabOverlay" onclick="closeFAB()"></div>
+  <div class="fab-menu" id="fabMenu">
+    <button class="fab-item" onclick="fabGo('contas')">&#128203; Nova conta</button>
+    <button class="fab-item" onclick="fabGo('gastos')">&#128184; Novo gasto</button>
+  </div>
+  <button class="fab" id="fabBtn" onclick="toggleFAB()">&#65291;</button>
 </div>
 
 <input type="file" id="pFam" accept="image/*" style="display:none" onchange="onPhoto(this,'family')"/>
@@ -265,6 +282,7 @@ function startSync(){
     synced = true;
     const sd = document.getElementById('syncDot');
     if(sd) sd.className = 'sync-dot';
+    checkRecurring();
     render();
   }, err => {
     document.getElementById('syncDot').className = 'sync-dot off';
@@ -367,11 +385,14 @@ function rDash(){
   </div>
   ${urg.length?`<div class="alrt"><div class="alrt-t">\u26A0\uFE0F Contas vencendo em breve</div>${urg.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:13px"><span>${c.name}</span><div style="display:flex;align-items:center;gap:7px">${dbadge(c.due)}<strong class="red">${fmt(c.amt)}</strong></div></div>`).join('')}</div>`:''}
   <div class="sec">
+    <div class="card"><div class="chd">Gastos por pessoa</div><div class="cbd">
+      ${(()=>{const pw={};mg.forEach(g=>{pw[g.who]=(pw[g.who]||0)+g.amt});return Object.entries(pw).length?`<div class="pw-who">${Object.entries(pw).map(([w,v])=>`<div class="pw-tag" style="background:${w==='Aed\u00E3o'?'#e8f4fd':w==='Leti'?'#fde8f4':'#edf8ee'};color:${w==='Aed\u00E3o'?'#0055aa':w==='Leti'?'#aa0055':'#1a7a3a'}"><div style="font-size:13px">${w==='Aed\u00E3o'?'\uD83D\uDC68':w==='Leti'?'\uD83D\uDC69':'\uD83D\uDC6B'}</div><div>${w}</div><div style="font-size:13px;font-weight:700;margin-top:2px">${fmt(v)}</div></div>`).join('')}</div>`:'<div class="empty">Nenhum gasto</div>'})()}
+    </div></div>
     <div class="card"><div class="chd">Por categoria</div><div class="cbd">
       ${cats.length?cats.map(([cat,val])=>`<div class="cr"><span style="font-size:16px">${ico(cat)}</span><span style="flex:1;font-size:12px">${nm(cat)}</span><div class="cbw"><div class="cb" style="width:${(val/mx*100).toFixed(1)}%;background:${CATS[cat]||'#888'}"></div></div><span style="font-size:11px;color:#8e8e93;min-width:76px;text-align:right">${fmt(val)}</span></div>`).join(''):'<div class="empty">Nenhum gasto</div>'}
     </div></div>
     <div class="card"><div class="chd">\u00DAltimos lan\u00E7amentos</div><div class="il">
-      ${mg.slice(0,6).map(g=>`<div class="li"><span class="li-ico">${ico(g.cat)}</span><div class="li-info"><div class="li-name">${g.name}</div><div class="li-sub">${nm(g.cat)} \u00B7 ${g.date} \u00B7 ${g.who}</div></div><span class="li-amt red">${fmt(g.amt)}</span></div>`).join('')||'<div class="empty">Nenhum lan\u00E7amento</div>'}
+      ${mg.slice(0,6).map(g=>`<div class="li"><span class="li-ico">${ico(g.cat)}</span><div class="li-info"><div class="li-name">${g.name}</div><div class="li-sub">${nm(g.cat)} \u00B7 ${g.date} \u00B7 ${g.who}</div></div><div class="li-r"><span class="li-amt red">${fmt(g.amt)}</span><button class="ebtn" onclick="editGasto(${g.id})">\u270F\uFE0F</button></div></div>`).join('')||'<div class="empty">Nenhum lan\u00E7amento</div>'}
     </div></div>
   </div>`;
 }
@@ -427,7 +448,7 @@ function rGastos(){
       <button class="btn" onclick="addGasto()">+ Adicionar gasto</button>
     </div></div>
     <div class="card"><div class="chd">Lan\u00E7amentos \u2014 ${MONTHS[curM]}</div><div class="il">
-      ${mg.length?mg.map(g=>`<div class="li"><span class="li-ico">${ico(g.cat)}</span><div class="li-info"><div class="li-name">${g.name}</div><div class="li-sub">${nm(g.cat)} \u00B7 ${g.date} \u00B7 ${g.who}</div></div><div class="li-r"><span class="li-amt red">${fmt(g.amt)}</span><button class="dbtn" onclick="delGasto(${g.id})">\u2715</button></div></div>`).join(''):'<div class="empty">Nenhum gasto neste m\u00EAs</div>'}
+      ${mg.length?mg.map(g=>`<div class="li"><span class="li-ico">${ico(g.cat)}</span><div class="li-info"><div class="li-name">${g.name}</div><div class="li-sub">${nm(g.cat)} \u00B7 ${g.date} \u00B7 ${g.who}</div></div><div class="li-r"><span class="li-amt red">${fmt(g.amt)}</span><button class="ebtn" onclick="editGasto(${g.id})">\u270F\uFE0F</button><button class="dbtn" onclick="delGasto(${g.id})">\u2715</button></div></div>`).join(''):'<div class="empty">Nenhum gasto neste m\u00EAs</div>'}
     </div></div>
   </div>`;
 }
@@ -454,7 +475,7 @@ function rContas(){
       <button class="btn teal" onclick="addConta()">+ Adicionar conta</button>
     </div></div>
     ${pend.length?`<div class="slbl">Pendentes (${pend.length})</div><div class="card"><div class="il">
-      ${pend.map(c=>`<div class="li"><span class="li-ico">${ico(c.cat)}</span><div class="li-info"><div class="li-name">${c.name}</div><div class="li-sub">${c.due?'Vence: '+c.due:'Sem data'} \u00B7 ${c.rec==='monthly'?'Mensal':c.rec==='yearly'?'Anual':'\u00DAnica'}</div><div style="margin-top:3px">${dbadge(c.due)}</div></div><div class="li-r"><span class="li-amt red">${fmt(c.amt)}</span><button class="pbtn" onclick="pagConta(${c.id})">\u2713 Pagar</button><button class="dbtn" onclick="delConta(${c.id})">\u2715</button></div></div>`).join('')}
+      ${pend.map(c=>`<div class="li"><span class="li-ico">${ico(c.cat)}</span><div class="li-info"><div class="li-name">${c.name}</div><div class="li-sub">${c.due?'Vence: '+c.due:'Sem data'} \u00B7 ${c.rec==='monthly'?'Mensal':c.rec==='yearly'?'Anual':'\u00DAnica'}</div><div style="margin-top:3px">${dbadge(c.due)}</div></div><div class="li-r"><span class="li-amt red">${fmt(c.amt)}</span><button class="pbtn" onclick="pagConta(${c.id})">\u2713 Pagar</button><button class="ebtn" onclick="editConta(${c.id})">\u270F\uFE0F</button><button class="dbtn" onclick="delConta(${c.id})">\u2715</button></div></div>`).join('')}
     </div></div>`:'<div class="empty" style="padding:14px 0 4px">Sem contas pendentes \uD83C\uDF89</div>'}
     ${paid.length?`<div class="slbl">Pagas (${paid.length})</div><div class="card"><div class="il">
       ${paid.map(c=>`<div class="li" style="opacity:.6"><span class="li-ico">${ico(c.cat)}</span><div class="li-info"><div class="li-name" style="text-decoration:line-through">${c.name}</div><div class="li-sub">${c.rec==='monthly'?'Mensal':c.rec==='yearly'?'Anual':'\u00DAnica'} \u00B7 ${c.paidBy||''}</div></div><div class="li-r"><span class="li-amt" style="color:#8e8e93">${fmt(c.amt)}</span><button class="pbtn off" onclick="pagConta(${c.id})">\u21A9</button><button class="dbtn" onclick="delConta(${c.id})">\u2715</button></div></div>`).join('')}
@@ -605,8 +626,116 @@ window.pagConta=function(id){const c=appData.contas.find(x=>x.id===id);if(c){c.p
 window.delConta=function(id){if(!confirm('Remover?'))return;appData.contas=appData.contas.filter(c=>c.id!==id);saveToFirebase()}
 window.updBudget=function(v){appData.budget=parseFloat(v)||0;saveToFirebase()}
 
+// \u2500\u2500 FAB \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+let fabOpen=false;
+window.toggleFAB=function(){fabOpen?closeFAB():openFABMenu()}
+function openFABMenu(){
+  fabOpen=true;
+  document.getElementById('fabMenu').style.display='flex';
+  document.getElementById('fabOverlay').style.display='block';
+  document.getElementById('fabBtn').textContent='\u2715';
+}
+window.closeFAB=function(){
+  fabOpen=false;
+  document.getElementById('fabMenu').style.display='none';
+  document.getElementById('fabOverlay').style.display='none';
+  document.getElementById('fabBtn').textContent='\uFF0B';
+}
+window.fabGo=function(t){closeFAB();prefDate=today();goTab(t,document.getElementById('tb-'+t))}
+
+// \u2500\u2500 Edit Gasto \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+window.editGasto=function(id){
+  const g=appData.gastos.find(x=>x.id===id);if(!g)return;
+  const ec=Object.keys(CATS).filter(k=>!BILL_CATS.includes(k));
+  document.getElementById('mcon').innerHTML=`
+    <div class="mt">Editar gasto</div>
+    <div class="fg"><label>Descri\u00E7\u00E3o</label><input id="egN" value="${g.name}"/></div>
+    <div class="fr">
+      <div class="fg"><label>Valor (R$)</label><input type="number" id="egA" value="${g.amt}" inputmode="decimal"/></div>
+      <div class="fg"><label>Data</label><input type="date" id="egD" value="${g.date}"/></div>
+    </div>
+    <div class="fg"><label>Categoria</label><select id="egC">${ec.map(c=>`<option value="${c}"${c===g.cat?' selected':''}>${c}</option>`).join('')}</select></div>
+    <div class="fg"><label>Pago por</label>
+      <div class="ws">${['Aed\u00E3o','Leti','Conjunto'].map(w=>`<button class="wb${w===g.who?' on':''}" id="ewb-${w}" onclick="eSelW('${w}')">${w==='Aed\u00E3o'?'\uD83D\uDC68':w==='Leti'?'\uD83D\uDC69':'\uD83D\uDC6B'} ${w}</button>`).join('')}</div>
+    </div>
+    <button class="btn" onclick="saveEditGasto(${id})">Salvar</button>`;
+  document.getElementById('modal').style.display='flex';
+  window._editWho=g.who;
+}
+window.eSelW=function(w){window._editWho=w;document.querySelectorAll('[id^=ewb-]').forEach(b=>b.classList.remove('on'));const b=document.getElementById('ewb-'+w);if(b)b.classList.add('on')}
+window.saveEditGasto=function(id){
+  const g=appData.gastos.find(x=>x.id===id);if(!g)return;
+  const n=document.getElementById('egN').value.trim(),a=parseFloat(document.getElementById('egA').value);
+  if(!n||isNaN(a)||a<=0){alert('Confira nome e valor.');return}
+  g.name=n;g.amt=a;g.date=document.getElementById('egD').value||g.date;
+  g.cat=document.getElementById('egC').value;g.who=window._editWho||g.who;
+  saveToFirebase();closeModal();
+}
+
+// \u2500\u2500 Edit Conta \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+window.editConta=function(id){
+  const c=appData.contas.find(x=>x.id===id);if(!c)return;
+  document.getElementById('mcon').innerHTML=`
+    <div class="mt">Editar conta</div>
+    <div class="fg"><label>Nome</label><input id="ecN" value="${c.name}"/></div>
+    <div class="fr">
+      <div class="fg"><label>Valor (R$)</label><input type="number" id="ecA" value="${c.amt}" inputmode="decimal"/></div>
+      <div class="fg"><label>Vencimento</label><input type="date" id="ecD" value="${c.due||''}"/></div>
+    </div>
+    <div class="fg"><label>Categoria</label><select id="ecC">${Object.keys(CATS).map(k=>`<option value="${k}"${k===c.cat?' selected':''}>${k}</option>`).join('')}</select></div>
+    <div class="fg"><label>Recorr\u00EAncia</label><select id="ecR">
+      <option value="monthly"${c.rec==='monthly'?' selected':''}>Todo m\u00EAs</option>
+      <option value="once"${c.rec==='once'?' selected':''}>\u00DAnica vez</option>
+      <option value="yearly"${c.rec==='yearly'?' selected':''}>Todo ano</option>
+    </select></div>
+    <button class="btn teal" onclick="saveEditConta(${id})">Salvar</button>`;
+  document.getElementById('modal').style.display='flex';
+}
+window.saveEditConta=function(id){
+  const c=appData.contas.find(x=>x.id===id);if(!c)return;
+  const n=document.getElementById('ecN').value.trim(),a=parseFloat(document.getElementById('ecA').value);
+  if(!n||isNaN(a)||a<=0){alert('Confira nome e valor.');return}
+  c.name=n;c.amt=a;c.due=document.getElementById('ecD').value||c.due;
+  c.cat=document.getElementById('ecC').value;c.rec=document.getElementById('ecR').value;
+  saveToFirebase();closeModal();
+}
+
+// \u2500\u2500 Recorr\u00EAncia autom\u00E1tica \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+function checkRecurring(){
+  const now=new Date(),tm=now.getMonth(),ty=now.getFullYear();
+  let changed=false;
+  appData.contas.filter(c=>c.rec==='monthly'&&c.paid&&c.due).forEach(c=>{
+    const d=new Date(c.due+'T00:00:00'),dm=d.getMonth(),dy=d.getFullYear();
+    if(dy<ty||(dy===ty&&dm<tm)){
+      const exists=appData.contas.some(x=>x.name===c.name&&!x.paid&&x.due&&
+        new Date(x.due+'T00:00:00').getMonth()===tm&&new Date(x.due+'T00:00:00').getFullYear()===ty);
+      if(!exists){
+        const nd=new Date(d);nd.setMonth(tm);nd.setFullYear(ty);
+        appData.contas.push({id:Date.now()+Math.random(),name:c.name,amt:c.amt,
+          due:nd.toISOString().split('T')[0],rec:'monthly',cat:c.cat,paid:false,paidBy:''});
+        changed=true;
+      }
+    }
+  });
+  appData.contas.filter(c=>c.rec==='yearly'&&c.paid&&c.due).forEach(c=>{
+    const d=new Date(c.due+'T00:00:00');
+    if(d.getFullYear()<ty){
+      const exists=appData.contas.some(x=>x.name===c.name&&!x.paid&&x.due&&
+        new Date(x.due+'T00:00:00').getFullYear()===ty);
+      if(!exists){
+        const nd=new Date(d);nd.setFullYear(ty);
+        appData.contas.push({id:Date.now()+Math.random(),name:c.name,amt:c.amt,
+          due:nd.toISOString().split('T')[0],rec:'yearly',cat:c.cat,paid:false,paidBy:''});
+        changed=true;
+      }
+    }
+  });
+  if(changed)saveToFirebase();
+}
+
+// \u2500\u2500 Service Worker \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 if('serviceWorker' in navigator){
-  window.addEventListener('load', () => navigator.serviceWorker.register('/familia-khouri/sw.js', {scope: '/familia-khouri/'}).catch(()=>{}));
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/familia-khouri/sw.js',{scope:'/familia-khouri/'}).catch(()=>{}));
 }
 </script>
 </body>
